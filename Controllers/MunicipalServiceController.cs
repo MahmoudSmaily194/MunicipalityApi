@@ -52,7 +52,7 @@ namespace SawirahMunicipalityWeb.Controllers
                 {
                     Title = request.Title,
                     Description = request.Description,
-                    Status = request.Status,
+                    Status = (int)request.Status,
                     ImageUrl = imageUrl,
                     CategoryId = request.CategoryId
                 };

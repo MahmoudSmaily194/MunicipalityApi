@@ -116,5 +116,14 @@ namespace SawirahMunicipalityWeb.Controllers
             }
             return NoContent();
         }
+
+        [HttpGet("get-newsItem-by-admin")]
+
+        public async Task<IActionResult> GetNewsItemByAdmin(string slug)
+        {
+            var res = await newsService.getAdminBySlugAsync(slug);
+            if (res == null) return NotFound("NewsItem not found ");
+            return Ok(res);
+        }
     }
 }

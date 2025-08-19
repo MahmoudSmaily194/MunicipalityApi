@@ -65,10 +65,30 @@ namespace SawirahMunicipalityWeb.Services.NewsServices
             };
 
         }
+        public async Task<News?> getAdminBySlugAsync(string slug)
+        {
+            var newsItem = await _context.News
+               .FirstOrDefaultAsync(n => n.Slug == slug);
+            if (newsItem is null)
+            {
+                return null;
+            }
+            return new News
+            {
+                Title = newsItem.Title,
+                Description = newsItem.Description,
+                UpdatedAt = newsItem.UpdatedAt,
+                ImageUrl = newsItem.ImageUrl,
+                Id = newsItem.Id,
+                Slug = newsItem.Slug,
+                Visibility = newsItem.Visibility,
 
+            };
+        }
         public async Task<PaginatedResponse<News>> GetVisibleAsync(PaginationParams paginationParams)
         {
-            var query = _context.News.OrderByDescending(c => c.CreatedAt).AsQueryable();
+            var query = _context.News.OrderByDescending(c => c.CreatedAt)
+                .Where(c => c.Visibility == Visibility.Public).AsQueryable();
             if (!string.IsNullOrEmpty(paginationParams.DateFilter))
             {
                 DateTime now = DateTime.UtcNow;

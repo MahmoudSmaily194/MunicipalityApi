@@ -84,7 +84,8 @@ namespace SawirahMunicipalityWeb.Services.ComplaintServices
             try
             {
                 var query = _context.Complaints
-                    .Include(c => c.ComplaintIssue).OrderByDescending(c => c.CreatedAt)
+                    .Include(c => c.ComplaintIssue)
+                    .OrderByDescending(c => c.CreatedAt)
                     .Select(c => new getCompliantDto
                     {
                         Id = c.Id,

@@ -10,13 +10,12 @@ using SawirahMunicipalityWeb.Services.EventsServices;
 using SawirahMunicipalityWeb.Services.MunicipalServices;
 using SawirahMunicipalityWeb.Services.NewsServices;
 using SawirahMunicipalityWeb.Services.SendEmailServices;
-using System;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container. 
 builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
@@ -24,23 +23,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<DBContext>(options =>
-{
-    // First try local connection from config
-    var connStr = builder.Configuration.GetConnectionString("DBConnection");
-
-    // Then try Railway environment variable
-    var envConnStr = Environment.GetEnvironmentVariable("DATABASE_URL");
-    if (!string.IsNullOrEmpty(envConnStr))
-    {
-        // Append SSL mode for Railway
-        connStr = envConnStr + "?sslmode=Require";
-    }
-
-    options.UseNpgsql(connStr);
-});
-
-
-
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DBConnection")));
 
 // ✅ Identity services for Guid-based User and Role
 builder.Services.AddIdentity<User, IdentityRole<Guid>>()
@@ -118,9 +101,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
 app.MapControllers();
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<DBContext>();
-    db.Database.Migrate();
-}
+
 app.Run();

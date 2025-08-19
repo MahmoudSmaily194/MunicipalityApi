@@ -11,5 +11,6 @@ namespace SawirahMunicipalityWeb.Services.NewsServices
         Task<PaginatedResponse<News>> GetAllAsync(PaginationParams paginationParams);
         Task<News?> UpdateNewsItemAsync(Guid id , UpdateNewsItemDto dto);
         Task<bool> DeleteNewsItemAsync(Guid id);
+        Task<News?> getAdminBySlugAsync(string slug);
     }
 }

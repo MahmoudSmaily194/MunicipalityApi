@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SawirahMunicipalityWeb.Data;
 using SawirahMunicipalityWeb.Entities;
+using SawirahMunicipalityWeb.Enums;
 using SawirahMunicipalityWeb.Helpers;
 using SawirahMunicipalityWeb.Models;
 
@@ -48,7 +49,7 @@ namespace SawirahMunicipalityWeb.Services.MunicipalServices
                 Slug = slug,
                 Description = dto.Description,
                 CategoryId = dto.CategoryId,
-                Status = dto.Status,
+                Status = (Status)dto.Status,
                 ImageUrl = dto.ImageUrl,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -58,37 +59,60 @@ namespace SawirahMunicipalityWeb.Services.MunicipalServices
             return service;
         }
 
-        public async Task<PaginatedResponse<Service>> GetServicesAsync(PaginationParams paginationParams)
+        public async Task<PaginatedResponse<MunicipalServiceResponceDto>> GetServicesAsync(PaginationParams paginationParams)
         {
-            var query = _context.Services.OrderByDescending(c => c.CreatedAt).AsQueryable();
-            if (paginationParams.CategoryId.HasValue)
+            try
             {
-                query = query.Where(n => n.CategoryId == paginationParams.CategoryId);
+                var query = _context.Services
+                    .Select(s => new MunicipalServiceResponceDto
+                    {
+                        Id = s.Id,
+                        ImageUrl = s.ImageUrl,
+                        CategoryId = s.CategoryId,
+                        CategoryName = s.Category != null ? s.Category.Name : string.Empty,
+                        Title = s.Title,
+                        Description = s.Description,
+                        Status = s.Status,
+                        CreatedAt = s.CreatedAt,
+                        UpdatedAt = s.UpdatedAt
+                    }).AsQueryable();
+                if (paginationParams.CategoryId.HasValue)
+                {
+                    query = query.Where(n => n.CategoryId == paginationParams.CategoryId);
+                }
+                if (!string.IsNullOrEmpty(paginationParams.SearchTerm))
+                {
+
+                    var search = $"%{paginationParams.SearchTerm}%";
+                    query = query.Where(n =>
+                        EF.Functions.Like(n.Title, search) ||
+                        EF.Functions.Like(n.Description, search));
+                }
+                var sortBy = paginationParams.SortBy?.ToLower();
+                var sortDirection = paginationParams.SortDirection?.ToLower();
+
+                if (sortBy == "updatedat")
+                {
+                    query = sortDirection == "asc"
+                        ? query.OrderBy(n => n.UpdatedAt)
+                        : query.OrderByDescending(n => n.UpdatedAt);
+                }
+                else if (sortBy == "title")
+                {
+                    query = sortDirection == "asc"
+                        ? query.OrderBy(n => n.Title)
+                        : query.OrderByDescending(n => n.Title);
+                }
+
+
+                var paginated = await query.ToPaginatedListAsync(paginationParams.PageNumber, paginationParams.PageSize);
+                return paginated;
             }
-            if (!string.IsNullOrEmpty(paginationParams.SearchTerm))
+            catch (Exception ex)
             {
-
-                query = query.Where(n => n.Title.ToLower().Contains(paginationParams.SearchTerm.ToLower()) || n.Description.ToLower().Contains(paginationParams.SearchTerm.ToLower()));
+                // Log ex.Message and ex.StackTrace appropriately
+                throw;
             }
-            var sortBy = paginationParams.SortBy?.ToLower();
-            var sortDirection = paginationParams.SortDirection?.ToLower();
-
-            if (sortBy == "updatedat")
-            {
-                query = sortDirection == "asc"
-                    ? query.OrderBy(n => n.UpdatedAt)
-                    : query.OrderByDescending(n => n.UpdatedAt);
-            }
-            else if (sortBy == "title")
-            {
-                query = sortDirection == "asc"
-                    ? query.OrderBy(n => n.Title)
-                    : query.OrderByDescending(n => n.Title);
-            }
-
-
-            var paginated = await query.ToPaginatedListAsync(paginationParams.PageNumber, paginationParams.PageSize);
-            return paginated;
         }
 
         public async Task<List<ServicesCategories>> GetServiceCategoriesAsync()
@@ -101,10 +125,9 @@ namespace SawirahMunicipalityWeb.Services.MunicipalServices
         {
             var updatedService = await _context.Services.FindAsync(id);
             if (updatedService is null) return null;
-
             updatedService.Title = dto.Title;
             updatedService.Description = dto.Description;
-            updatedService.Status = dto.Status;
+            updatedService.Status = (Status)dto.Status;
             updatedService.ImageUrl = dto.ImageUrl;
             updatedService.Slug = await SlugHelper.GenerateUniqueSlug<Service>(
             dto.Title,
@@ -149,15 +172,23 @@ namespace SawirahMunicipalityWeb.Services.MunicipalServices
             return true;
         }
 
-        public async Task<Service> GetServiceByIdAsync(Guid id)
+        public async Task<MunicipalServiceResponceDto?> GetServiceByIdAsync(Guid id)
         {
-            var service = await _context.Services.FindAsync(id);
-            if (service is null)
-            {
-                return null;
-            }
-            return service;
+            return await _context.Services
+                .Include(s => s.Category)
+                .Select(s => new MunicipalServiceResponceDto
+                {
+                    Id = s.Id,
+                    ImageUrl = s.ImageUrl,
+                    CategoryId = s.CategoryId,
+                    CategoryName = s.Category != null ? s.Category.Name : string.Empty,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Status = s.Status
+                })
+                .FirstOrDefaultAsync(s => s.Id == id);
         }
+
     }
 
 }
